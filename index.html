@@ -464,9 +464,11 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
         <div class="stat-card"><div class="stat-label" id="stat-label-revenue">营业额</div><div class="stat-value" id="stat-revenue">RM 0.00</div></div>
         <div class="stat-card"><div class="stat-label" id="stat-label-count">订单数</div><div class="stat-value" id="stat-count">0</div></div>
         <div class="stat-card"><div class="stat-label" id="stat-label-cash">现金</div><div class="stat-value" id="stat-cash">RM 0.00</div></div>
-        <div class="stat-card"><div class="stat-label" id="stat-label-noncash">转账 / 电子钱包</div><div class="stat-value" id="stat-noncash">RM 0.00</div></div>
+        <div class="stat-card"><div class="stat-label" id="stat-label-transfer">银行转账</div><div class="stat-value" id="stat-transfer">RM 0.00</div></div>
+        <div class="stat-card"><div class="stat-label" id="stat-label-ewallet">电子钱包</div><div class="stat-value" id="stat-ewallet">RM 0.00</div></div>
         <div class="stat-card"><div class="stat-label" id="stat-label-discount">折扣总额</div><div class="stat-value" id="stat-discount">RM 0.00</div></div>
       </div>
+      <button class="ghost-btn" id="btn-cash-recon" type="button" style="margin-bottom:18px;">💰 <span id="t-cash-recon-btn">现金核对</span></button>
       <div class="hist-section-title" id="hist-title-trend">营业趋势</div>
       <div id="trend-chart-wrap"></div>
       <div class="hist-section-title" id="hist-title-category">分类销量</div>
@@ -475,6 +477,22 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
       <div id="rank-list"></div>
       <div class="hist-section-title" id="hist-title-tx">交易明细</div>
       <div id="tx-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-cash-recon">
+  <div class="modal-box">
+    <div class="modal-head"><div class="modal-title" id="cash-recon-modal-title">现金核对</div><button class="close-x" data-close="modal-cash-recon">&times;</button></div>
+    <div class="modal-body">
+      <div class="totals-row"><span id="t-system-cash">系统现金总额（今天）</span><span id="recon-system-cash">RM 0.00</span></div>
+      <div class="field-label" id="t-actual-cash" style="margin-top:14px;">实际点到金额</div>
+      <input type="number" inputmode="decimal" class="big-amount-input" id="recon-actual-input" placeholder="0.00">
+      <div class="calc-preview" id="recon-diff-display">&nbsp;</div>
+      <input type="text" class="field-input" id="recon-note-input" placeholder="备注（可选）">
+      <button class="modal-primary-btn" id="recon-save-btn">保存核对记录</button>
+      <div class="hist-section-title" id="t-recent-recon" style="margin-top:20px;">最近核对记录</div>
+      <div id="recon-list"></div>
     </div>
   </div>
 </div>
@@ -513,6 +531,9 @@ const STRINGS = {
     cashReceivedLabel:'收到金额', exact:'刚好', change:'找零', cashNotEnough:'金额不够，请再确认',
     discountLabel:'折扣', subtotalLabel:'小计', addDiscount:'添加折扣', editDiscount:'编辑折扣',
     customerEmailLabel:'顾客邮箱（可选，用来发收据）', emailSent:'收据已发送', emailFailed:'收据发送失败，请检查网络', emailUnavailable:'发信组件未加载，请检查网络',
+    cashReconBtn:'现金核对', cashReconTitle:'现金核对', systemCashToday:'系统现金总额（今天）', actualCashCounted:'实际点到金额',
+    diffSurplus:'多出', diffShort:'短少', diffMatch:'刚好对上', reconNotePh:'备注（可选）', saveRecon:'保存核对记录', recentRecon:'最近核对记录', noReconYet:'还没有核对记录',
+    toastReconSaved:'已保存', toastEnterActualCash:'请输入实际点到的金额',
     discountModalTitle:'添加折扣', discountPercent:'百分比 %', discountAmountType:'固定金额 RM', applyDiscount:'应用折扣', removeDiscount:'移除折扣',
     commonDiscounts:'常用折扣', savePreset:'保存目前设定为常用折扣', noPresetsYet:'还没有存过常用折扣', presetSaved:'已保存', presetAlreadySaved:'这个折扣已经存过了',
     voidBtn:'作废', voided:'已作废', confirmVoid:'确定要作废这笔交易吗？金额会从统计中扣除，但记录会保留，不会真的删除。',
@@ -551,6 +572,9 @@ const STRINGS = {
     cashReceivedLabel:'Cash received', exact:'Exact', change:'Change', cashNotEnough:'Not enough received — check the amount',
     discountLabel:'Discount', subtotalLabel:'Subtotal', addDiscount:'Add discount', editDiscount:'Edit discount',
     customerEmailLabel:'Customer email (optional, sends a receipt)', emailSent:'Receipt sent', emailFailed:'Could not send the receipt — check your connection', emailUnavailable:'Email component not loaded — check your connection',
+    cashReconBtn:'Cash reconciliation', cashReconTitle:'Cash reconciliation', systemCashToday:'System cash total (today)', actualCashCounted:'Actual cash counted',
+    diffSurplus:'Over by', diffShort:'Short by', diffMatch:'Matches exactly', reconNotePh:'Note (optional)', saveRecon:'Save reconciliation', recentRecon:'Recent reconciliations', noReconYet:'No reconciliations yet',
+    toastReconSaved:'Saved', toastEnterActualCash:'Enter the actual cash counted',
     discountModalTitle:'Add discount', discountPercent:'Percent %', discountAmountType:'Fixed amount RM', applyDiscount:'Apply discount', removeDiscount:'Remove discount',
     commonDiscounts:'Common discounts', savePreset:'Save current setting as a preset', noPresetsYet:'No saved presets yet', presetSaved:'Saved', presetAlreadySaved:'That discount is already saved',
     voidBtn:'Void', voided:'Voided', confirmVoid:'Void this transaction? It will be excluded from totals, but the record stays for reference — nothing is actually deleted.',
@@ -589,6 +613,8 @@ const TEXT_IDS = {
   'pay-cash':'cash', 'pay-transfer':'transfer', 'pay-ewallet':'ewallet', 'checkout-confirm-btn':'confirmPayment',
   'label-cash-received':'cashReceivedLabel',
   't-subtotal':'subtotalLabel', 'discount-modal-title':'discountModalTitle', 'label-customer-email':'customerEmailLabel',
+  't-cash-recon-btn':'cashReconBtn', 'cash-recon-modal-title':'cashReconTitle', 't-system-cash':'systemCashToday', 't-actual-cash':'actualCashCounted',
+  'recon-save-btn':'saveRecon', 't-recent-recon':'recentRecon',
   'disctype-percent-btn':'discountPercent', 'disctype-amount-btn':'discountAmountType',
   'discount-apply-btn':'applyDiscount', 'discount-remove-btn':'removeDiscount',
   'discount-presets-label':'commonDiscounts', 'discount-save-preset-btn':'savePreset',
@@ -599,12 +625,12 @@ const TEXT_IDS = {
   'cm-needsprep-label':'needsPrepLabel', 'prep-board-title':'prepBoard',
   'history-modal-title':'salesHistory', 'range-today':'today', 'range-week':'thisWeek', 'range-month':'thisMonth', 'range-lastmonth':'lastMonth', 'range-custom':'custom',
   'stat-label-discount':'discountTotalLabel', 'hist-title-trend':'trendTitle', 'hist-title-category':'categoryTitle',
-  'stat-label-revenue':'revenue', 'stat-label-count':'orders', 'stat-label-cash':'cashLabel', 'stat-label-noncash':'transferEwallet',
+  'stat-label-revenue':'revenue', 'stat-label-count':'orders', 'stat-label-cash':'cashLabel', 'stat-label-transfer':'transfer', 'stat-label-ewallet':'ewallet',
   'hist-title-rank':'topSellers', 'hist-title-tx':'transactions'
 };
 const PLACEHOLDER_IDS = {
   'login-password':'password', 'search-input':'searchItems', 'cart-note':'noteholder',
-  'pm-name':'itemNamePh', 'pm-category-new':'newCategoryPh', 'cm-name':'categoryNamePh', 'customer-email-input':'customerEmailLabel'
+  'pm-name':'itemNamePh', 'pm-category-new':'newCategoryPh', 'cm-name':'categoryNamePh', 'customer-email-input':'customerEmailLabel', 'recon-note-input':'reconNotePh'
 };
 
 function applyLanguage(){
@@ -629,6 +655,7 @@ function applyLanguage(){
   renderHistory();
   renderPrepBoard();
   renderDiscountPresets();
+  renderReconList();
 }
 document.getElementById('lang-zh').addEventListener('click', ()=>{ lang='zh'; localStorage.setItem('pos_lang','zh'); applyLanguage(); });
 document.getElementById('lang-en').addEventListener('click', ()=>{ lang='en'; localStorage.setItem('pos_lang','en'); applyLanguage(); });
@@ -705,6 +732,7 @@ const SEED_PRODUCTS = [
 let products = [], categoriesList = [], currentCategory = 'all', searchTerm = '';
 let cart = [], cartNote = '', cartDiscount = null, discModalType = 'percent', pendingVariableProduct = null, pendingCheckoutMethod = null;
 let discountPresets = [];
+let cashReconRecords = [];
 let sales = [], historyRange = 'today';
 let pmSoldBy = 'each', cmColor = QUICK_PALETTE[0];
 
@@ -858,6 +886,13 @@ function initData(){
     discountPresets = (doc.exists && doc.data().list) || [];
     renderDiscountPresets();
   }, err=>console.error('常用折扣同步出错', err));
+
+  db.collection('pos_cash_recon').orderBy('timestampMs','desc').limit(30).onSnapshot({includeMetadataChanges:true}, snap=>{
+    setSyncStatus(snap.metadata.fromCache);
+    cashReconRecords = [];
+    snap.forEach(doc=>cashReconRecords.push({id:doc.id, ...doc.data()}));
+    renderReconList();
+  }, err=>console.error('现金核对同步出错', err));
 
   loadOpenTickets();
 }
@@ -1629,10 +1664,13 @@ function renderHistoryWithList(list, startMs, endMs){
   const activeList = list.filter(s=>!s.voided);
   const revenue = activeList.reduce((s,x)=>s+x.total,0);
   const cash = activeList.filter(x=>x.paymentMethod==='cash').reduce((s,x)=>s+x.total,0);
+  const transfer = activeList.filter(x=>x.paymentMethod==='transfer').reduce((s,x)=>s+x.total,0);
+  const ewallet = activeList.filter(x=>x.paymentMethod==='ewallet').reduce((s,x)=>s+x.total,0);
   document.getElementById('stat-revenue').textContent = fmt(revenue);
   document.getElementById('stat-count').textContent = activeList.length;
   document.getElementById('stat-cash').textContent = fmt(cash);
-  document.getElementById('stat-noncash').textContent = fmt(revenue-cash);
+  document.getElementById('stat-transfer').textContent = fmt(transfer);
+  document.getElementById('stat-ewallet').textContent = fmt(ewallet);
   const discountTotal = activeList.reduce((s,x)=>s+(x.discountAmount||0),0);
   document.getElementById('stat-discount').textContent = fmt(discountTotal);
 
@@ -1780,6 +1818,72 @@ function renderPrepBoard(){
       card.appendChild(row);
     });
     list.appendChild(card);
+  });
+}
+
+/* ================= Cash reconciliation ================= */
+function todayCashTotal(){
+  const {startMs, endMs} = todayBoundsMs();
+  return sales.filter(s=>!s.voided && s.paymentMethod==='cash' && s.timestampMs>=startMs && s.timestampMs<endMs)
+    .reduce((sum,s)=>sum+s.total, 0);
+}
+function updateReconDiff(){
+  const systemCash = todayCashTotal();
+  const actual = parseFloat(document.getElementById('recon-actual-input').value);
+  const disp = document.getElementById('recon-diff-display');
+  if(isNaN(actual)){ disp.innerHTML = '&nbsp;'; return; }
+  const diff = Math.round((actual - systemCash + Number.EPSILON)*100)/100;
+  if(diff === 0){
+    disp.innerHTML = '<b>'+t('diffMatch')+'</b>';
+  }else if(diff > 0){
+    disp.innerHTML = t('diffSurplus') + ' <b>' + fmt(diff) + '</b>';
+  }else{
+    disp.innerHTML = '<span class="change-warn">' + t('diffShort') + ' <b>' + fmt(Math.abs(diff)) + '</b></span>';
+  }
+}
+document.getElementById('btn-cash-recon').addEventListener('click', ()=>{
+  document.getElementById('recon-system-cash').textContent = fmt(todayCashTotal());
+  document.getElementById('recon-actual-input').value = '';
+  document.getElementById('recon-note-input').value = '';
+  document.getElementById('recon-diff-display').innerHTML = '&nbsp;';
+  renderReconList();
+  openModal('modal-cash-recon');
+});
+document.getElementById('recon-actual-input').addEventListener('input', updateReconDiff);
+document.getElementById('recon-save-btn').addEventListener('click', ()=>{
+  const actual = parseFloat(document.getElementById('recon-actual-input').value);
+  if(isNaN(actual) || actual < 0){ toast(t('toastEnterActualCash')); return; }
+  const systemCash = todayCashTotal();
+  const diff = Math.round((actual - systemCash + Number.EPSILON)*100)/100;
+  const now = new Date();
+  const p = n=> String(n).padStart(2,'0');
+  const dateLabel = now.getFullYear()+'-'+p(now.getMonth()+1)+'-'+p(now.getDate());
+  const record = {
+    dateLabel, systemCash, actualCash:actual, difference:diff,
+    note: document.getElementById('recon-note-input').value.trim(),
+    cashier: currentCashier, timestampMs: now.getTime()
+  };
+  db.collection('pos_cash_recon').add(record)
+    .then(()=>{ toast(t('toastReconSaved')); document.getElementById('recon-actual-input').value=''; document.getElementById('recon-note-input').value=''; document.getElementById('recon-diff-display').innerHTML='&nbsp;'; })
+    .catch(e=>console.error('保存现金核对失败', e));
+});
+function renderReconList(){
+  const list = document.getElementById('recon-list');
+  if(!list) return;
+  list.innerHTML = '';
+  if(cashReconRecords.length===0){
+    list.innerHTML = '<div class="cart-empty" style="padding:12px 0;">'+t('noReconYet')+'</div>';
+    return;
+  }
+  cashReconRecords.forEach(r=>{
+    const row = document.createElement('div');
+    row.className = 'tx-row';
+    const diffText = r.difference===0 ? t('diffMatch') : (r.difference>0 ? (t('diffSurplus')+' '+fmt(r.difference)) : (t('diffShort')+' '+fmt(Math.abs(r.difference))));
+    row.innerHTML = '<div class="tx-row-top"><span class="tx-time"></span><span class="tx-amount"></span></div><div class="tx-detail"></div>';
+    row.querySelector('.tx-time').textContent = r.dateLabel + ' · ' + (r.cashier||'');
+    row.querySelector('.tx-amount').textContent = diffText;
+    row.querySelector('.tx-detail').textContent = t('systemCashToday')+' '+fmt(r.systemCash)+' · '+t('actualCashCounted')+' '+fmt(r.actualCash) + (r.note ? ('（'+r.note+'）') : '');
+    list.appendChild(row);
   });
 }
 
