@@ -382,6 +382,8 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
         <div class="swatch-row" id="cash-quick-row" style="gap:8px;"></div>
         <div class="calc-preview" id="change-display">&nbsp;</div>
       </div>
+      <div class="field-label" id="label-customer-email">顾客邮箱（可选，用来发收据）</div>
+      <input type="email" class="field-input" id="customer-email-input" placeholder="customer@email.com">
       <button class="modal-primary-btn" id="checkout-confirm-btn" disabled>确认收款</button>
     </div>
   </div>
@@ -494,6 +496,7 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
 /* ================= i18n ================= */
 const STRINGS = {
@@ -509,6 +512,7 @@ const STRINGS = {
     paymentMethod:'付款方式', cash:'现金', transfer:'银行转账', ewallet:'电子钱包', confirmPayment:'确认收款', doneToast:'已完成 · ',
     cashReceivedLabel:'收到金额', exact:'刚好', change:'找零', cashNotEnough:'金额不够，请再确认',
     discountLabel:'折扣', subtotalLabel:'小计', addDiscount:'添加折扣', editDiscount:'编辑折扣',
+    customerEmailLabel:'顾客邮箱（可选，用来发收据）', emailSent:'收据已发送', emailFailed:'收据发送失败，请检查网络', emailUnavailable:'发信组件未加载，请检查网络',
     discountModalTitle:'添加折扣', discountPercent:'百分比 %', discountAmountType:'固定金额 RM', applyDiscount:'应用折扣', removeDiscount:'移除折扣',
     commonDiscounts:'常用折扣', savePreset:'保存目前设定为常用折扣', noPresetsYet:'还没有存过常用折扣', presetSaved:'已保存', presetAlreadySaved:'这个折扣已经存过了',
     voidBtn:'作废', voided:'已作废', confirmVoid:'确定要作废这笔交易吗？金额会从统计中扣除，但记录会保留，不会真的删除。',
@@ -546,6 +550,7 @@ const STRINGS = {
     paymentMethod:'Payment method', cash:'Cash', transfer:'Bank transfer', ewallet:'E-wallet', confirmPayment:'Confirm payment', doneToast:'Done · ',
     cashReceivedLabel:'Cash received', exact:'Exact', change:'Change', cashNotEnough:'Not enough received — check the amount',
     discountLabel:'Discount', subtotalLabel:'Subtotal', addDiscount:'Add discount', editDiscount:'Edit discount',
+    customerEmailLabel:'Customer email (optional, sends a receipt)', emailSent:'Receipt sent', emailFailed:'Could not send the receipt — check your connection', emailUnavailable:'Email component not loaded — check your connection',
     discountModalTitle:'Add discount', discountPercent:'Percent %', discountAmountType:'Fixed amount RM', applyDiscount:'Apply discount', removeDiscount:'Remove discount',
     commonDiscounts:'Common discounts', savePreset:'Save current setting as a preset', noPresetsYet:'No saved presets yet', presetSaved:'Saved', presetAlreadySaved:'That discount is already saved',
     voidBtn:'Void', voided:'Voided', confirmVoid:'Void this transaction? It will be excluded from totals, but the record stays for reference — nothing is actually deleted.',
@@ -583,7 +588,7 @@ const TEXT_IDS = {
   'variable-confirm-btn':'addToOrder', 'checkout-modal-title':'charge', 'label-payment-method':'paymentMethod',
   'pay-cash':'cash', 'pay-transfer':'transfer', 'pay-ewallet':'ewallet', 'checkout-confirm-btn':'confirmPayment',
   'label-cash-received':'cashReceivedLabel',
-  't-subtotal':'subtotalLabel', 'discount-modal-title':'discountModalTitle',
+  't-subtotal':'subtotalLabel', 'discount-modal-title':'discountModalTitle', 'label-customer-email':'customerEmailLabel',
   'disctype-percent-btn':'discountPercent', 'disctype-amount-btn':'discountAmountType',
   'discount-apply-btn':'applyDiscount', 'discount-remove-btn':'removeDiscount',
   'discount-presets-label':'commonDiscounts', 'discount-save-preset-btn':'savePreset',
@@ -599,7 +604,7 @@ const TEXT_IDS = {
 };
 const PLACEHOLDER_IDS = {
   'login-password':'password', 'search-input':'searchItems', 'cart-note':'noteholder',
-  'pm-name':'itemNamePh', 'pm-category-new':'newCategoryPh', 'cm-name':'categoryNamePh'
+  'pm-name':'itemNamePh', 'pm-category-new':'newCategoryPh', 'cm-name':'categoryNamePh', 'customer-email-input':'customerEmailLabel'
 };
 
 function applyLanguage(){
@@ -649,6 +654,18 @@ try{
     db.enablePersistence({synchronizeTabs:true}).catch(err=>console.warn('离线缓存未能启用', err.code));
   }
 }catch(e){ console.error('Firebase 初始化失败', e); }
+
+/* ================= EmailJS ================= */
+const EMAILJS_SERVICE_ID = 'service_dzx6r01';
+const EMAILJS_TEMPLATE_ID = 'template_3noaqrd';
+const EMAILJS_PUBLIC_KEY = '6kJ1gYvAyyplltUx6';
+let useEmailJs = false;
+try{
+  if(typeof emailjs !== 'undefined'){
+    emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+    useEmailJs = true;
+  }
+}catch(e){ console.warn('EmailJS 初始化失败（可能无网络）', e); }
 
 const CASHIERS = { UG:'gardener@tomato.com', B2:'farmer@tomato.com' };
 let currentCashier = null, selectedLoginCashier = 'UG';
@@ -1153,6 +1170,7 @@ document.getElementById('btn-checkout').addEventListener('click', ()=>{
   pendingCheckoutMethod = null;
   document.querySelectorAll('.pay-method-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('cash-panel').style.display = 'none';
+  document.getElementById('customer-email-input').value = '';
   document.getElementById('checkout-confirm-btn').disabled = true;
   openModal('modal-checkout');
 });
@@ -1179,6 +1197,7 @@ document.getElementById('checkout-confirm-btn').addEventListener('click', ()=>{
     if(!cashReceived || cashReceived < checkoutTotal) return;
     changeGiven = Math.round((cashReceived - checkoutTotal + Number.EPSILON)*100)/100;
   }
+  const customerEmail = document.getElementById('customer-email-input').value.trim();
   const now = new Date();
   const total = checkoutTotal;
   const sub = subtotalOf();
@@ -1198,14 +1217,43 @@ document.getElementById('checkout-confirm-btn').addEventListener('click', ()=>{
     subtotal: sub, discountType: cartDiscount ? cartDiscount.type : null, discountValue: cartDiscount ? cartDiscount.value : null, discountAmount: discAmt,
     total: total, paymentMethod: pendingCheckoutMethod, cashier: currentCashier, note: cartNote || '',
     cashReceived: cashReceived, changeGiven: changeGiven, voided: false,
+    customerEmail: customerEmail || null,
     timestamp: now.toISOString(), timestampMs: now.getTime()
   };
-  db.collection('pos_sales').add(sale).catch(e=>console.error('保存销售记录失败', e));
+  db.collection('pos_sales').add(sale)
+    .then(()=>{ if(customerEmail) sendReceiptEmail(sale, customerEmail); })
+    .catch(e=>console.error('保存销售记录失败', e));
   cart = []; cartNote = ''; cartDiscount = null; document.getElementById('cart-note').value = '';
+  document.getElementById('customer-email-input').value = '';
   renderCart(); closeModal('modal-checkout');
   document.getElementById('cart-panel').classList.remove('mobile-open');
   toast(t('doneToast') + fmt(total) + (changeGiven ? (' · ' + t('change') + ' ' + fmt(changeGiven)) : ''));
 });
+
+function sendReceiptEmail(sale, toEmail){
+  if(!useEmailJs || typeof emailjs === 'undefined'){ toast(t('emailUnavailable')); return; }
+  const methodLabelMap = {cash:t('cash'), transfer:t('transfer'), ewallet:t('ewallet')};
+  const itemsText = (sale.items||[]).map(it=>
+    it.name + ' x' + it.qty + (it.mode==='weight' ? 'kg' : '') + '   ' + fmt(it.lineTotal)
+  ).join('\n');
+  const discountText = sale.discountAmount
+    ? ((sale.discountType==='percent' ? (sale.discountValue+'%') : fmt(sale.discountValue)) + ' (-' + fmt(sale.discountAmount) + ')')
+    : '-';
+  const params = {
+    to_email: toEmail,
+    order_date: new Date(sale.timestampMs).toLocaleString('zh-CN'),
+    cashier: sale.cashier || '',
+    payment_method: methodLabelMap[sale.paymentMethod] || sale.paymentMethod,
+    items_text: itemsText,
+    subtotal: fmt(sale.subtotal),
+    discount_text: discountText,
+    total: fmt(sale.total),
+    note: sale.note || ''
+  };
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params)
+    .then(()=>toast(t('emailSent')))
+    .catch(err=>{ console.error('发送收据失败', err); toast(t('emailFailed')); });
+}
 
 /* ================= Open tickets ================= */
 const TICKETS_KEY = 'pos_open_tickets_v1';
