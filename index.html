@@ -499,7 +499,8 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
         <div class="stat-card"><div class="stat-label" id="stat-label-ewallet">电子钱包</div><div class="stat-value" id="stat-ewallet">RM 0.00</div><div class="stat-sub" id="stat-ewallet-count">0 单</div></div>
         <div class="stat-card"><div class="stat-label" id="stat-label-discount">折扣总额</div><div class="stat-value" id="stat-discount">RM 0.00</div></div>
       </div>
-      <button class="ghost-btn" id="btn-cash-recon" type="button" style="margin-bottom:18px;">💰 <span id="t-cash-recon-btn">现金核对</span></button>
+      <button class="ghost-btn" id="btn-cash-recon" type="button" style="margin-bottom:10px;">💰 <span id="t-cash-recon-btn">现金核对</span></button>
+      <button class="ghost-btn" id="btn-backfill-order" type="button" style="margin-bottom:18px;margin-left:8px;">✎ <span id="t-backfill-btn">补登历史单</span></button>
       <div class="hist-section-title" id="hist-title-trend">营业趋势</div>
       <div id="trend-chart-wrap"></div>
       <div class="hist-section-title" id="hist-title-category">分类销量</div>
@@ -524,6 +525,35 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
       <button class="modal-primary-btn" id="recon-save-btn">保存核对记录</button>
       <div class="hist-section-title" id="t-recent-recon" style="margin-top:20px;">最近核对记录</div>
       <div id="recon-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-backfill">
+  <div class="modal-box">
+    <div class="modal-head"><div class="modal-title" id="backfill-modal-title">补登历史单</div><button class="close-x" data-close="modal-backfill">&times;</button></div>
+    <div class="modal-body">
+      <div class="field-hint" id="backfill-hint" style="margin-top:0;">用来补记因为异常（比如断网）没能存上的旧单，会标注"补登"，不会假装是当时系统自动产生的。</div>
+      <div class="field-row">
+        <div style="flex:1;">
+          <div class="field-label" id="t-backfill-date">日期</div>
+          <input type="date" class="field-input" id="backfill-date-input">
+        </div>
+        <div style="flex:1;">
+          <div class="field-label" id="t-backfill-time">时间</div>
+          <input type="time" class="field-input" id="backfill-time-input">
+        </div>
+      </div>
+      <div class="field-label" id="t-backfill-desc">大概卖了什么（说明用，不需要精确）</div>
+      <input type="text" class="field-input" id="backfill-desc-input" placeholder="例如：几杯咖啡、番茄若干">
+      <div class="field-label" id="t-backfill-amount">估计金额（RM）</div>
+      <input type="number" inputmode="decimal" class="big-amount-input" id="backfill-amount-input" placeholder="0.00">
+      <div class="field-label" id="t-backfill-method">付款方式</div>
+      <div class="pay-methods">
+        <button class="pay-method-btn" data-backfillmethod="cash" type="button" id="backfill-pay-cash">现金</button>
+        <button class="pay-method-btn" data-backfillmethod="ewallet" type="button" id="backfill-pay-ewallet">电子钱包</button>
+      </div>
+      <button class="modal-primary-btn" id="backfill-save-btn">保存补登记录</button>
     </div>
   </div>
 </div>
@@ -569,8 +599,13 @@ const STRINGS = {
     commonDiscounts:'常用折扣', savePreset:'保存目前设定为常用折扣', noPresetsYet:'还没有存过常用折扣', presetSaved:'已保存', presetAlreadySaved:'这个折扣已经存过了',
     voidBtn:'作废', voided:'已作废', confirmVoid:'确定要作废这笔交易吗？金额会从统计中扣除，但记录会保留，不会真的删除。',
     fixPaymentBtn:'改付款方式', fixPaymentModalTitle:'改付款方式', correctPaymentMethod:'正确的付款方式', correctedTag:'已更正', confirmCorrection:'确认更正',
+    backfillBtn:'补登历史单', backfilledTag:'补登', toastBackfillNeedDatetime:'请填写日期和时间', toastBackfillNeedDesc:'请填写大概卖了什么', toastBackfillNeedAmount:'请填写估计金额', toastBackfillNeedMethod:'请选择付款方式',
+    backfillDateLabel:'日期', backfillTimeLabel:'时间', backfillDescLabel:'大概卖了什么（说明用，不需要精确）', backfillAmountLabel:'估计金额（RM）', saveBackfill:'保存补登记录',
+    backfillHint:'用来补记因为异常（比如断网）没能存上的旧单，会标注"补登"，不会假装是当时系统自动产生的。',
     holdCurrent:'暂存当前这单', noHeldTickets:'目前没有暂存的单', confirmResumeTicket:'本单还有未结账的商品，恢复暂存单会替换当前内容，确定吗？',
     confirmDeleteTicket:'删除这张暂存单？', itemsSuffix:' 项', confirmClearCart:'清空本单？已加入的商品会全部移除。',
+    savingLabel:'保存中…', saveFailedWarning:'⚠️ 这笔单没有成功保存！请检查网络后重新点一次「确认收款」，购物车内容还保留着，不会消失。',
+    persistenceWarning:'⚠️ 这次离线缓存没有启动成功（常见原因是这个网页同时开了不止一个分页/窗口）。如果今天中途断网，结账可能无法自动补传保存。建议：关掉其他分页，只留一个，并尽量在有网络时结账。',
     addEditItem:'新增 / 编辑商品', itemNamePh:'商品名称', category:'分类', newCategoryPh:'新分类名称', newCategoryOption:'+ 新增分类',
     soldBy:'怎么计价', each:'按件 Each', weight:'按重量 Weight',
     priceLabel:'价格（RM）', pricePerKgLabel:'每公斤价格（RM/kg）',
@@ -612,8 +647,13 @@ const STRINGS = {
     commonDiscounts:'Common discounts', savePreset:'Save current setting as a preset', noPresetsYet:'No saved presets yet', presetSaved:'Saved', presetAlreadySaved:'That discount is already saved',
     voidBtn:'Void', voided:'Voided', confirmVoid:'Void this transaction? It will be excluded from totals, but the record stays for reference — nothing is actually deleted.',
     fixPaymentBtn:'Fix payment', fixPaymentModalTitle:'Fix payment method', correctPaymentMethod:'Correct payment method', correctedTag:'Corrected', confirmCorrection:'Confirm correction',
+    backfillBtn:'Backfill order', backfilledTag:'Backfilled', toastBackfillNeedDatetime:'Enter a date and time', toastBackfillNeedDesc:'Enter roughly what was sold', toastBackfillNeedAmount:'Enter an estimated amount', toastBackfillNeedMethod:'Choose a payment method',
+    backfillDateLabel:'Date', backfillTimeLabel:'Time', backfillDescLabel:'Roughly what was sold (for reference, no need to be exact)', backfillAmountLabel:'Estimated amount (RM)', saveBackfill:'Save backfilled order',
+    backfillHint:'Use this to record an old order lost to an issue (e.g. going offline). It will be tagged "Backfilled" and never presented as a real-time system entry.',
     holdCurrent:'Hold current order', noHeldTickets:'No held tickets', confirmResumeTicket:'This order has unpaid items — resuming will replace them. Continue?',
     confirmDeleteTicket:'Delete this held ticket?', itemsSuffix:' items', confirmClearCart:'Clear this order? All added items will be removed.',
+    savingLabel:'Saving…', saveFailedWarning:'⚠️ This order was NOT saved! Check your connection and tap "Confirm payment" again — the cart is still here and has not been cleared.',
+    persistenceWarning:'⚠️ Offline caching did not start successfully this session (often caused by having this page open in more than one tab or window). If you lose connection today, checkouts may not save automatically. Please close any extra tabs of this page and try to check out while you have a connection.',
     addEditItem:'Add / edit item', itemNamePh:'Item name', category:'Category', newCategoryPh:'New category name', newCategoryOption:'+ New category',
     soldBy:'Sold by', each:'Each', weight:'Weight',
     priceLabel:'Price (RM)', pricePerKgLabel:'Price per kg (RM/kg)',
@@ -652,6 +692,9 @@ const TEXT_IDS = {
   't-subtotal':'subtotalLabel', 'discount-modal-title':'discountModalTitle', 'label-customer-email':'customerEmailLabel',
   't-cash-recon-btn':'cashReconBtn', 'cash-recon-modal-title':'cashReconTitle', 't-system-cash':'systemCashToday', 't-actual-cash':'actualCashCounted',
   'recon-save-btn':'saveRecon', 't-recent-recon':'recentRecon',
+  't-backfill-btn':'backfillBtn', 'backfill-modal-title':'backfillBtn', 't-backfill-date':'backfillDateLabel', 't-backfill-time':'backfillTimeLabel',
+  't-backfill-desc':'backfillDescLabel', 't-backfill-amount':'backfillAmountLabel', 't-backfill-method':'paymentMethod',
+  'backfill-pay-cash':'cash', 'backfill-pay-ewallet':'ewallet', 'backfill-save-btn':'saveBackfill', 'backfill-hint':'backfillHint',
   'disctype-percent-btn':'discountPercent', 'disctype-amount-btn':'discountAmountType',
   'discount-apply-btn':'applyDiscount', 'discount-remove-btn':'removeDiscount',
   'discount-presets-label':'commonDiscounts', 'discount-save-preset-btn':'savePreset',
@@ -706,7 +749,7 @@ const firebaseConfig = {
   messagingSenderId: "963725004292",
   appId: "1:963725004292:web:b3a0b19bd7ffd3c8daef51"
 };
-let db = null, auth = null, useFirestore = false;
+let db = null, auth = null, useFirestore = false, persistenceOk = null;
 try{
   if(typeof firebase === 'undefined'){ console.warn('Firebase SDK 未加载'); }
   else{
@@ -715,7 +758,9 @@ try{
     auth = firebase.auth();
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(err=>console.warn('登录持久化设置失败', err.code));
     useFirestore = true;
-    db.enablePersistence({synchronizeTabs:true}).catch(err=>console.warn('离线缓存未能启用', err.code));
+    db.enablePersistence({synchronizeTabs:true})
+      .then(()=>{ persistenceOk = true; })
+      .catch(err=>{ persistenceOk = false; console.warn('离线缓存未能启用', err.code); });
   }
 }catch(e){ console.error('Firebase 初始化失败', e); }
 
@@ -863,6 +908,9 @@ if(useFirestore){
       restoreActiveCart();
       renderCart();
       initData();
+      setTimeout(()=>{
+        if(persistenceOk === false) alert(t('persistenceWarning'));
+      }, 2000);
     }else{
       currentCashier = null;
       document.getElementById('login-screen').style.display = 'flex';
@@ -1463,14 +1511,41 @@ document.getElementById('checkout-confirm-btn').addEventListener('click', ()=>{
     customerEmail: customerEmail || null,
     timestamp: now.toISOString(), timestampMs: now.getTime()
   };
+  const confirmBtn = document.getElementById('checkout-confirm-btn');
+  confirmBtn.disabled = true;
+  const originalLabel = confirmBtn.textContent;
+  confirmBtn.textContent = t('savingLabel');
+  let settled = false;
+  const timeoutId = setTimeout(()=>{
+    if(settled) return;
+    settled = true;
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = originalLabel;
+    alert(t('saveFailedWarning'));
+  }, 10000);
   db.collection('pos_sales').add(sale)
-    .then(()=>{ if(customerEmail) sendReceiptEmail(sale, customerEmail); })
-    .catch(e=>console.error('保存销售记录失败', e));
-  cart = []; cartNote = ''; cartDiscount = null; document.getElementById('cart-note').value = '';
-  document.getElementById('customer-email-input').value = '';
-  renderCart(); closeModal('modal-checkout');
-  document.getElementById('cart-panel').classList.remove('mobile-open');
-  toast(t('doneToast') + fmt(total) + (changeGiven ? (' · ' + t('change') + ' ' + fmt(changeGiven)) : ''));
+    .then(()=>{
+      if(settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      if(customerEmail) sendReceiptEmail(sale, customerEmail);
+      cart = []; cartNote = ''; cartDiscount = null; document.getElementById('cart-note').value = '';
+      document.getElementById('customer-email-input').value = '';
+      renderCart(); closeModal('modal-checkout');
+      document.getElementById('cart-panel').classList.remove('mobile-open');
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = originalLabel;
+      toast(t('doneToast') + fmt(total) + (changeGiven ? (' · ' + t('change') + ' ' + fmt(changeGiven)) : ''));
+    })
+    .catch(e=>{
+      console.error('保存销售记录失败', e);
+      if(settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = originalLabel;
+      alert(t('saveFailedWarning'));
+    });
 });
 
 function sendReceiptEmail(sale, toEmail){
@@ -1961,7 +2036,7 @@ function renderHistoryWithList(list, startMs, endMs){
       row.querySelector('.tx-time').textContent = time + ' · ' + (methodLabel[s.paymentMethod]||s.paymentMethod) + ' · ' + (s.cashier||'') + ' · ' + t('voided');
       amountEl.innerHTML = '<span style="text-decoration:line-through;">'+fmt(s.total)+'</span>';
     }else{
-      row.querySelector('.tx-time').textContent = time + ' · ' + (methodLabel[s.paymentMethod]||s.paymentMethod) + ' · ' + (s.cashier||'') + (s.paymentMethodCorrected ? (' · '+t('correctedTag')) : '');
+      row.querySelector('.tx-time').textContent = time + ' · ' + (methodLabel[s.paymentMethod]||s.paymentMethod) + ' · ' + (s.cashier||'') + (s.paymentMethodCorrected ? (' · '+t('correctedTag')) : '') + (s.backfilled ? (' · '+t('backfilledTag')) : '');
       amountEl.textContent = fmt(s.total);
       const voidBtn = document.createElement('button');
       voidBtn.className = 'pm-mini-btn';
@@ -2181,6 +2256,49 @@ function renderReconList(){
     list.appendChild(row);
   });
 }
+
+/* ================= Backfill historical order ================= */
+let pendingBackfillMethod = null;
+document.getElementById('btn-backfill-order').addEventListener('click', ()=>{
+  const now = new Date();
+  const p = n=> String(n).padStart(2,'0');
+  document.getElementById('backfill-date-input').value = now.getFullYear()+'-'+p(now.getMonth()+1)+'-'+p(now.getDate());
+  document.getElementById('backfill-time-input').value = p(now.getHours())+':'+p(now.getMinutes());
+  document.getElementById('backfill-desc-input').value = '';
+  document.getElementById('backfill-amount-input').value = '';
+  pendingBackfillMethod = null;
+  document.querySelectorAll('[data-backfillmethod]').forEach(b=>b.classList.remove('active'));
+  openModal('modal-backfill');
+});
+document.querySelectorAll('[data-backfillmethod]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('[data-backfillmethod]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    pendingBackfillMethod = btn.dataset.backfillmethod;
+  });
+});
+document.getElementById('backfill-save-btn').addEventListener('click', ()=>{
+  const dateVal = document.getElementById('backfill-date-input').value;
+  const timeVal = document.getElementById('backfill-time-input').value;
+  const desc = document.getElementById('backfill-desc-input').value.trim();
+  const amount = parseFloat(document.getElementById('backfill-amount-input').value);
+  if(!dateVal || !timeVal){ toast(t('toastBackfillNeedDatetime')); return; }
+  if(!desc){ toast(t('toastBackfillNeedDesc')); return; }
+  if(!amount || amount<=0){ toast(t('toastBackfillNeedAmount')); return; }
+  if(!pendingBackfillMethod){ toast(t('toastBackfillNeedMethod')); return; }
+  const dt = new Date(dateVal+'T'+timeVal+':00');
+  const sale = {
+    items: [{name:desc, qty:1, unitPrice:amount, lineTotal:amount, mode:'unit', category:'', needsPrep:false, prepDone:false}],
+    subtotal: amount, discountType:null, discountValue:null, discountAmount:0,
+    total: amount, paymentMethod: pendingBackfillMethod, cashier: currentCashier, note: '',
+    cashReceived:null, changeGiven:null, voided:false, customerEmail:null,
+    backfilled:true, backfilledBy:currentCashier, backfilledAt:Date.now(),
+    timestamp: dt.toISOString(), timestampMs: dt.getTime()
+  };
+  db.collection('pos_sales').add(sale)
+    .then(()=>{ toast(t('toastAdded')); closeModal('modal-backfill'); renderHistory(); })
+    .catch(e=>{ console.error('保存补登记录失败', e); alert(t('saveFailedWarning')); });
+});
 
 applyLanguage();
 </script>
