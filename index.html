@@ -70,10 +70,10 @@ header.topbar{display:flex;align-items:center;gap:14px;padding:10px 16px;border-
 main.workspace{flex:1;display:flex;overflow:hidden;}
 #product-panel{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg);}
 .cat-row{display:flex;gap:14px;padding:12px 16px 10px;overflow-x:auto;flex-shrink:0;border-bottom:1px solid var(--border-soft);}
-.cat-tab-icon{flex-shrink:0;width:68px;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;cursor:pointer;padding:0;}
+.cat-tab-icon{flex-shrink:0;width:58px;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;cursor:pointer;padding:0;}
 .cat-tab-icon-circle{width:44px;height:44px;border-radius:50%;background:var(--cat-bg,var(--tomato));display:flex;align-items:center;justify-content:center;color:var(--on-accent);border:2px solid transparent;box-sizing:border-box;transition:transform .12s, box-shadow .12s;}
 .cat-tab-icon.active .cat-tab-icon-circle{transform:scale(1.08);box-shadow:0 0 0 3px var(--bg), 0 0 0 5.5px var(--tomato);}
-.cat-tab-icon-label{font-size:10.5px;color:var(--text-dim);text-align:center;line-height:1.2;max-width:68px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere;position:relative;padding-bottom:5px;}
+.cat-tab-icon-label{font-size:10.5px;color:var(--text-dim);text-align:center;line-height:1.2;max-width:58px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere;position:relative;padding-bottom:5px;}
 .cat-tab-icon.active .cat-tab-icon-label{color:var(--tomato-dim);font-weight:700;}
 .cat-tab-icon.active .cat-tab-icon-label::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:16px;height:3px;border-radius:2px;background:var(--tomato);}
 .icon-pick-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
@@ -85,11 +85,11 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
 .search-box input::placeholder{color:var(--text-mute);}
 #search-clear-btn{background:none;border:none;color:var(--text-mute);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:2px;}
 #product-grid{flex:1;overflow-y:auto;padding:4px 16px calc(20px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start;}
-.product-card{border-radius:var(--radius);background:var(--surface);border:1px solid var(--border-soft);padding:12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:6px;min-height:88px;position:relative;overflow:hidden;}
+.product-card{border-radius:var(--radius);background:var(--surface);border:1px solid var(--border-soft);padding:12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:6px;height:100px;position:relative;overflow:hidden;}
 .product-card:active{background:var(--surface-hi);}
 .product-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--cat-color,var(--tomato));}
-.product-name{font-size:14px;font-weight:500;line-height:1.3;padding-left:6px;color:var(--text);}
-.product-price{font-size:15px;font-weight:600;color:var(--text-dim);margin-top:auto;padding-left:6px;}
+.product-name{font-size:16px;font-weight:600;line-height:1.25;padding-left:6px;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;}
+.product-price{font-size:15px;font-weight:500;color:var(--text-dim);margin-top:auto;padding-left:6px;}
 .product-price.variable{color:#B4791E;font-size:13px;}
 .empty-note{color:var(--text-mute);padding:40px 20px;text-align:center;grid-column:1/-1;}
 
@@ -286,6 +286,9 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
 #fill-banner .fb-warn{color:var(--tomato-dim);font-weight:600;margin-top:4px;}
 .pend-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border-soft);}
 .pend-row .pend-info{flex:1;min-width:0;font-size:13px;}
+.cart-quick-row{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border-soft);flex-shrink:0;}
+.cart-quick-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;font-weight:500;cursor:pointer;}
+.cart-quick-btn:active{background:var(--surface-hi);}
 </style>
 </head>
 <body>
@@ -351,14 +354,16 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
         <button class="icon-btn" id="btn-clear-cart" type="button" aria-label="clear cart" style="display:none;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
         </button>
-        <button class="ghost-btn" id="btn-open-tickets" type="button"><span id="t-held-tickets">暂存单</span> <span class="badge-count" id="ticket-count">0</span></button>
-        <button class="ghost-btn" id="btn-open-pending" type="button"><span id="t-pending-btn">待补单</span> <span class="badge-count" id="pending-count">0</span></button>
+      </div>
+      <div class="cart-quick-row">
+        <button class="cart-quick-btn" id="btn-open-tickets" type="button"><span id="t-held-tickets">暂存单</span> <span class="badge-count" id="ticket-count">0</span></button>
+        <button class="cart-quick-btn" id="btn-open-pending" type="button"><span id="t-pending-btn">待补单</span> <span class="badge-count" id="pending-count">0</span></button>
       </div>
       <div id="cart-items"><div class="cart-empty" id="t-cart-empty">还没有点单，点左边的商品开始</div></div>
       <div class="cart-foot">
         <div id="fill-banner"><div class="fb-row"><span id="fill-banner-text"></span><button class="ghost-btn" id="fill-cancel-btn" type="button" style="padding:4px 10px;">取消</button></div><div class="fb-warn" id="fill-banner-warn"></div></div>
         <input type="text" class="cart-note-field" id="cart-note" placeholder="备注（可选，如：外带、桌号）">
-        <button class="ghost-btn" id="btn-discount" type="button" style="margin-bottom:10px;">+ <span id="btn-discount-label">添加折扣</span></button>
+        <button class="cart-quick-btn" id="btn-discount" type="button" style="width:100%;margin-bottom:10px;">+ <span id="btn-discount-label">添加折扣</span></button>
         <div class="totals-row" id="subtotal-row" style="display:none;"><span id="t-subtotal">小计</span><span id="subtotal-amount">RM 0.00</span></div>
         <div class="totals-row" id="discount-row" style="display:none;color:var(--tomato-dim);">
           <span id="discount-row-label">折扣</span>
@@ -563,6 +568,7 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
       <input type="hidden" id="cm-edit-id">
       <input type="hidden" id="cm-edit-oldname">
       <input type="text" class="field-input" id="cm-name" placeholder="分类名称">
+      <input type="text" class="field-input" id="cm-short" placeholder="顶部标签简称（可选，名字太长时用）" maxlength="12">
       <div class="field-label" id="cm-color-label">颜色</div>
       <div class="swatch-row" id="cm-swatch-row"></div>
       <div class="field-label" id="cm-icon-label">图标</div>
@@ -763,7 +769,7 @@ const STRINGS = {
     tierUnitLabel:'件', bundleLabel:'组', perUnitSuffix:'/件', startingFromSuffix:'起', toastFillTiers:'请至少填一档完整的数量和价格', tierPickModalTitle:'选择档次',
     saveItem:'保存商品', clearForm:'清空表单 / 新增一个', confirmDeleteItem:function(n){return '确定删除「'+n+'」吗？（不会影响已完成的销售记录）';},
     toastFillNameCat:'请填写商品名称和分类', toastUpdated:'已更新', toastAdded:'已新增',
-    addEditCategory:'新增 / 编辑分类', categoryNamePh:'分类名称', color:'颜色', iconLabel:'图标', saveCategory:'保存分类',
+    addEditCategory:'新增 / 编辑分类', categoryNamePh:'分类名称', categoryShortPh:'顶部标签简称（可选，名字太长时用）', color:'颜色', iconLabel:'图标', saveCategory:'保存分类',
     itemsCountLabel:function(n){return n+' 件商品';}, confirmDeleteCategory:function(n){return '确定删除「'+n+'」分类吗？分类下的商品不会被删除，但会变成未分类。';},
     ordersCount:function(n){return n+' 单';},
     toastFillCatName:'请填写分类名称',
@@ -816,7 +822,7 @@ const STRINGS = {
     tierUnitLabel:'pcs', bundleLabel:'bundle', perUnitSuffix:'/pc', startingFromPrefix:'From', toastFillTiers:'Fill in at least one complete tier (quantity and price)', tierPickModalTitle:'Choose a tier',
     saveItem:'Save item', clearForm:'Clear form / add new', confirmDeleteItem:function(n){return 'Delete "'+n+'"? (Past sales records are not affected)';},
     toastFillNameCat:'Enter an item name and category', toastUpdated:'Updated', toastAdded:'Added',
-    addEditCategory:'Add / edit category', categoryNamePh:'Category name', color:'Color', iconLabel:'Icon', saveCategory:'Save category',
+    addEditCategory:'Add / edit category', categoryNamePh:'Category name', categoryShortPh:'Short label for the top tab (optional, for long names)', color:'Color', iconLabel:'Icon', saveCategory:'Save category',
     itemsCountLabel:function(n){return n+' items';}, confirmDeleteCategory:function(n){return 'Delete category "'+n+'"? Items in it will not be deleted, but will become uncategorized.';},
     ordersCount:function(n){return n+' orders';},
     toastFillCatName:'Enter a category name',
@@ -867,7 +873,7 @@ const TEXT_IDS = {
 };
 const PLACEHOLDER_IDS = {
   'login-password':'password', 'search-input':'searchItems', 'cart-note':'noteholder',
-  'pm-name':'itemNamePh', 'pm-category-new':'newCategoryPh', 'cm-name':'categoryNamePh', 'customer-email-input':'customerEmailLabel', 'recon-note-input':'reconNotePh'
+  'pm-name':'itemNamePh', 'pm-category-new':'newCategoryPh', 'cm-name':'categoryNamePh', 'cm-short':'categoryShortPh', 'customer-email-input':'customerEmailLabel', 'recon-note-input':'reconNotePh'
 };
 
 function applyLanguage(){
@@ -1181,6 +1187,20 @@ function initData(){
     });
   });
 
+  db.collection('pos_meta').doc('categoryShortInit').get().then(doc=>{
+    if(doc.exists) return;
+    const shortByName = {'Fresh Vegetables':'Veggies', 'Merchandise':'Merch', 'Coffee Bean':'Beans'};
+    db.collection('pos_categories').get().then(snap=>{
+      const batch = db.batch(); let count = 0;
+      snap.forEach(d=>{
+        const dd = d.data();
+        if(dd.shortName===undefined && shortByName[dd.name]){ batch.update(d.ref, {shortName: shortByName[dd.name]}); count++; }
+      });
+      const finish = ()=>db.collection('pos_meta').doc('categoryShortInit').set({done:true, at:Date.now()});
+      if(count>0) batch.commit().then(finish).catch(e=>console.error('分类简称补齐失败', e)); else finish();
+    });
+  });
+
   db.collection('pos_meta').doc('categoryIconBackfill').get().then(doc=>{
     if(doc.exists) return;
     const iconByName = {
@@ -1288,7 +1308,7 @@ function renderCategories(){
     tab.className = 'cat-tab-icon' + (currentCategory===cat.name ? ' active' : '');
     tab.style.setProperty('--cat-bg', cat.color);
     tab.innerHTML = '<span class="cat-tab-icon-circle">'+iconSvg(cat.icon||'tag',22)+'</span><span class="cat-tab-icon-label"></span>';
-    tab.querySelector('.cat-tab-icon-label').textContent = cat.name;
+    tab.querySelector('.cat-tab-icon-label').textContent = cat.shortName || cat.name;
     tab.addEventListener('click', ()=>{ currentCategory=cat.name; renderCategories(); renderProducts(); });
     row.appendChild(tab);
   });
@@ -2227,6 +2247,7 @@ function renderCategoryManageList(){
       document.getElementById('cm-edit-id').value = c.id;
       document.getElementById('cm-edit-oldname').value = c.name;
       document.getElementById('cm-name').value = c.name;
+      document.getElementById('cm-short').value = c.shortName || '';
       document.getElementById('cm-needsprep').checked = !!c.needsPrep;
       cmColor = c.color;
       cmIcon = c.icon || 'tag';
@@ -2278,6 +2299,7 @@ function clearCategoryForm(){
   document.getElementById('cm-edit-id').value = '';
   document.getElementById('cm-edit-oldname').value = '';
   document.getElementById('cm-name').value = '';
+  document.getElementById('cm-short').value = '';
   document.getElementById('cm-needsprep').checked = false;
   cmColor = QUICK_PALETTE[0];
   cmIcon = 'tag';
@@ -2288,10 +2310,11 @@ document.getElementById('cm-save-btn').addEventListener('click', ()=>{
   const id = document.getElementById('cm-edit-id').value;
   const oldName = document.getElementById('cm-edit-oldname').value;
   const name = document.getElementById('cm-name').value.trim();
+  const shortName = document.getElementById('cm-short').value.trim();
   const needsPrep = document.getElementById('cm-needsprep').checked;
   if(!name){ toast(t('toastFillCatName')); return; }
   if(id){
-    db.collection('pos_categories').doc(id).update({name, color:cmColor, icon:cmIcon, needsPrep}).then(()=>{
+    db.collection('pos_categories').doc(id).update({name, shortName, color:cmColor, icon:cmIcon, needsPrep}).then(()=>{
       if(oldName && oldName !== name){
         db.collection('pos_products').where('category','==',oldName).get().then(snap=>{
           const batch = db.batch();
@@ -2303,7 +2326,7 @@ document.getElementById('cm-save-btn').addEventListener('click', ()=>{
       clearCategoryForm();
     }).catch(e=>console.error(e));
   }else{
-    db.collection('pos_categories').add({name, color:cmColor, icon:cmIcon, needsPrep, order:categoriesList.length, active:true, createdAt:Date.now()})
+    db.collection('pos_categories').add({name, shortName, color:cmColor, icon:cmIcon, needsPrep, order:categoriesList.length, active:true, createdAt:Date.now()})
       .then(()=>{ toast(t('toastAdded')); clearCategoryForm(); }).catch(e=>console.error(e));
   }
 });
