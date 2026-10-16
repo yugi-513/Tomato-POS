@@ -427,7 +427,7 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
     <div class="modal-body">
       <input type="number" inputmode="decimal" class="big-amount-input" id="variable-amount-input" placeholder="0.00">
       <div class="calc-preview" id="variable-calc-preview">&nbsp;</div>
-      <button class="soldby-btn" id="round-up-toggle" type="button" style="display:none;margin-bottom:14px;width:100%;">↑ <span id="t-round-up">取整（向上取整到整数）</span></button>
+      <button class="soldby-btn" id="round-up-toggle" type="button" style="display:none;margin-bottom:14px;width:100%;">≈ <span id="t-round-up">取整（四舍五入到整数）</span></button>
       <button class="modal-primary-btn" id="variable-confirm-btn">加入本单</button>
     </div>
   </div>
@@ -737,7 +737,7 @@ const STRINGS = {
     currentOrder:'本单', heldTickets:'暂存单', cartEmpty:'还没有点单，点左边的商品开始',
     noteholder:'备注（可选，如：外带、桌号）', itemsCount:'商品数', total:'合计', charge:'结账',
     salesHistory:'销售记录', manageCategories:'分类管理', manageItems:'商品管理', logout:'登出', confirmLogout:'确定要登出吗？',
-    addToOrder:'加入本单', enterValue:'请输入数值', weightPlaceholder:'重量 (kg)', roundUpLabel:'取整（向上取整到整数）', roundedTag:'已取整',
+    addToOrder:'加入本单', enterValue:'请输入数值', weightPlaceholder:'重量 (kg)', roundUpLabel:'取整（四舍五入到整数）', roundedTag:'已取整',
     paymentMethod:'付款方式', cash:'现金', transfer:'银行转账', ewallet:'电子钱包', confirmPayment:'确认收款', doneToast:'已完成 · ',
     cashReceivedLabel:'收到金额', exact:'刚好', change:'找零', cashNotEnough:'金额不够，请再确认', customAmount:'自定义',
     discountLabel:'折扣', subtotalLabel:'小计', addDiscount:'添加折扣', editDiscount:'编辑折扣',
@@ -790,7 +790,7 @@ const STRINGS = {
     currentOrder:'Current order', heldTickets:'Held tickets', cartEmpty:'No items yet — tap a product to start',
     noteholder:'Note (optional, e.g. takeaway, table)', itemsCount:'Items', total:'Total', charge:'Charge',
     salesHistory:'Sales history', manageCategories:'Manage categories', manageItems:'Manage items', logout:'Log out', confirmLogout:'Log out now?',
-    addToOrder:'Add to order', enterValue:'Enter a value', weightPlaceholder:'Weight (kg)', roundUpLabel:'Round up to a whole number', roundedTag:'Rounded',
+    addToOrder:'Add to order', enterValue:'Enter a value', weightPlaceholder:'Weight (kg)', roundUpLabel:'Round to nearest whole RM (.50 and up rounds up)', roundedTag:'Rounded',
     paymentMethod:'Payment method', cash:'Cash', transfer:'Bank transfer', ewallet:'E-wallet', confirmPayment:'Confirm payment', doneToast:'Done · ',
     cashReceivedLabel:'Cash received', exact:'Exact', change:'Change', cashNotEnough:'Not enough received — check the amount', customAmount:'Custom',
     discountLabel:'Discount', subtotalLabel:'Subtotal', addDiscount:'Add discount', editDiscount:'Edit discount',
@@ -1363,6 +1363,8 @@ function renderProducts(){
 
 /* ================= Cart ================= */
 let roundUpActive = false;
+// 四舍五入到整数令吉：.49 及以下舍去，.50 及以上进位（先按分取整，避免浮点误差）
+function roundWhole(n){ return Math.floor(Math.round(n*100)/100 + 0.5); }
 function addToCart(product){
   if(product.priceMode === 'fixed'){
     const existing = cart.find(l=>l.type==='unit' && l.productId===product.id && l.unitPrice===product.price);
@@ -1438,7 +1440,7 @@ function updateVariablePreview(){
   if(!w || w<=0){ preview.innerHTML = '&nbsp;'; return; }
   const total = w * pendingVariableProduct.price;
   if(roundUpActive){
-    const rounded = Math.ceil(total);
+    const rounded = roundWhole(total);
     preview.innerHTML = pendingVariableProduct.price.toFixed(2) + t('perKg') + ' &times; ' + w + ' kg = ' + fmt(total) + ' &rarr; <b>' + fmt(rounded) + '</b>';
   }else{
     preview.innerHTML = pendingVariableProduct.price.toFixed(2) + t('perKg') + ' &times; ' + w + ' kg = <b>' + fmt(total) + '</b>';
@@ -1456,8 +1458,9 @@ document.getElementById('variable-confirm-btn').addEventListener('click', ()=>{
   if(!val || val<=0){ toast(t('enterValue')); return; }
   if(pendingVariableProduct.priceMode === 'perWeight'){
     let lineTotal = pendingVariableProduct.price*val;
-    if(roundUpActive) lineTotal = Math.ceil(lineTotal);
-    cart.push({type:'weight', productId:pendingVariableProduct.id, name:pendingVariableProduct.name, category:pendingVariableProduct.category, ratePerKg:pendingVariableProduct.price, weightKg:val, lineTotal, rounded:roundUpActive});
+    const exactTotal = lineTotal;
+    if(roundUpActive) lineTotal = roundWhole(lineTotal);
+    cart.push({type:'weight', productId:pendingVariableProduct.id, name:pendingVariableProduct.name, category:pendingVariableProduct.category, ratePerKg:pendingVariableProduct.price, weightKg:val, lineTotal, exactTotal, rounded:roundUpActive});
   }else{
     cart.push({type:'unit', productId:pendingVariableProduct.id, name:pendingVariableProduct.name, category:pendingVariableProduct.category, unitPrice:val, qty:1});
   }
@@ -1792,7 +1795,7 @@ document.getElementById('checkout-confirm-btn').addEventListener('click', ()=>{
       const cat = catByName(l.category);
       const needsPrep = !!(cat && cat.needsPrep);
       const base = l.type==='weight'
-        ? {name:l.name, qty:l.weightKg, unitPrice:l.ratePerKg, lineTotal:l.lineTotal, mode:'weight', rounded:!!l.rounded}
+        ? {name:l.name, qty:l.weightKg, unitPrice:l.ratePerKg, lineTotal:l.lineTotal, mode:'weight', rounded:!!l.rounded, exactTotal:(l.exactTotal!==undefined ? l.exactTotal : l.lineTotal)}
         : l.type==='tierRate'
         ? {name:l.name+' ('+l.bracketLabel+')', qty:l.qty, unitPrice:l.rate, lineTotal:l.lineTotal, mode:'tier'}
         : {name:l.name, qty:l.qty, unitPrice:l.unitPrice, lineTotal:l.unitPrice*l.qty, mode:'unit'};
