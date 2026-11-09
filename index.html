@@ -368,6 +368,7 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
       </div>
       <div class="cart-quick-row">
         <button class="cart-quick-btn" id="btn-open-tickets" type="button"><span id="t-held-tickets">暂存单</span> <span class="badge-count" id="ticket-count">0</span></button>
+        <button class="cart-quick-btn" id="btn-split" type="button"><span id="t-split-btn">分单</span></button>
         <button class="cart-quick-btn" id="btn-open-pending" type="button"><span id="t-pending-btn">待补单</span> <span class="badge-count" id="pending-count">0</span></button>
       </div>
       <div id="cart-items"><div class="cart-empty" id="t-cart-empty">还没有点单，点左边的商品开始</div></div>
@@ -538,6 +539,36 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
       <div class="field-label" id="label-send-receipt-email">顾客邮箱（可选，用来发收据）</div>
       <input type="email" class="field-input" id="send-receipt-email-input" placeholder="customer@email.com">
       <button class="modal-primary-btn" id="send-receipt-confirm-btn">发送收据</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-refund">
+  <div class="modal-box">
+    <div class="modal-head"><div class="modal-title" id="refund-modal-title">退款</div><button class="close-x" data-close="modal-refund">&times;</button></div>
+    <div class="modal-body">
+      <div class="field-hint" id="refund-summary"></div>
+      <div class="field-label" id="label-refund-amount">退款金额（RM）</div>
+      <input type="number" inputmode="decimal" step="0.01" class="cart-note-field" id="refund-amount-input">
+      <button class="ghost-btn" id="refund-full-btn" type="button" style="margin:6px 0 10px;">全额</button>
+      <div class="field-label" id="label-refund-method">钱用什么方式退给顾客</div>
+      <div class="pay-methods">
+        <button class="pay-method-btn" data-refmethod="cash" type="button" id="ref-cash">现金</button>
+        <button class="pay-method-btn" data-refmethod="ewallet" type="button" id="ref-ewallet">电子钱包</button>
+      </div>
+      <input type="text" class="cart-note-field" id="refund-note-input" placeholder="原因（可选）">
+      <button class="modal-primary-btn" id="refund-confirm-btn" disabled>确认退款</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-split">
+  <div class="modal-box">
+    <div class="modal-head"><div class="modal-title" id="split-modal-title">分单</div><button class="close-x" data-close="modal-split">&times;</button></div>
+    <div class="modal-body">
+      <div class="field-hint" id="split-hint"></div>
+      <div id="split-list"></div>
+      <button class="modal-primary-btn" id="split-confirm-btn" disabled>确认分单</button>
     </div>
   </div>
 </div>
@@ -773,7 +804,7 @@ main.workspace{flex:1;display:flex;overflow:hidden;}
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 /* ================= Error reporter & version ================= */
-const APP_VERSION = '2026-11-05';
+const APP_VERSION = '2026-11-09';
 window.addEventListener('error', function(e){
   const msg = String(e.message||'');
   if(!msg || /ResizeObserver|Script error/i.test(msg)) return;
@@ -827,7 +858,7 @@ const STRINGS = {
     tierMinPh:'最少', tierMaxPh:'最多(留空=不限)', tierAndAbove:' 件及以上', tierNoMatch:'数量没有对应的价格区间，请检查商品设定',
     tierUnitLabel:'件', bundleLabel:'组', perUnitSuffix:'/件', startingFromSuffix:'起', toastFillTiers:'请至少填一档完整的数量和价格', tierPickModalTitle:'选择档次',
     saveItem:'保存商品', clearForm:'清空表单 / 新增一个', confirmDeleteItem:function(n){return '确定删除「'+n+'」吗？（不会影响已完成的销售记录）';},
-    toastFillNameCat:'请填写商品名称和分类', toastUpdated:'已更新', toastAdded:'已新增',
+    toastFillNameCat:'请填写商品名称和分类', toastUpdated:'已更新', splitBtn:'分单', splitTitle:'分单', splitHint:'选出「现在这位顾客」要付的；其余商品会自动存成暂存单，等下一位顾客时从暂存单取回。', splitStay:'现在付', splitLater:'稍后', splitConfirm:'确认分单', splitNeedBoth:'至少要有一件留在本单，也至少分出一件', splitDone:'已分单，其余已存入暂存单', splitTicketNote:'分单', splitDiscNote:'（折扣仍留在本单）', refundBtn:'退款', refundTitle:'退款', refundAmt:'退款金额（RM）', refundFull:'全额', refundMethod:'钱用什么方式退给顾客', refundNote:'原因（可选）', refundConfirm:'确认退款', refundTag:'已退', refundMax:'最多可退', refundBad:'金额不对', unvoidBtn:'撤销作废', confirmUnvoid:'撤销作废，让这笔单重新计入统计？', refundKeepNote:'顾客用电子钱包付，现金退回：电子钱包栏仍计入这笔（与TnG流水一致），现金栏会扣掉退出的现金。', refundNet:'实收',  toastAdded:'已新增',
     addEditCategory:'新增 / 编辑分类', categoryNamePh:'分类名称', categoryShortPh:'顶部标签简称（可选，名字太长时用）', color:'颜色', iconLabel:'图标', saveCategory:'保存分类',
     itemsCountLabel:function(n){return n+' 件商品';}, confirmDeleteCategory:function(n){return '确定删除「'+n+'」分类吗？分类下的商品不会被删除，但会变成未分类。';},
     ordersCount:function(n){return n+' 单';},
@@ -880,7 +911,7 @@ const STRINGS = {
     tierMinPh:'Min', tierMaxPh:'Max (blank = no limit)', tierAndAbove:'+ pcs', tierNoMatch:'No price range matches this quantity — check the item setup',
     tierUnitLabel:'pcs', bundleLabel:'bundle', perUnitSuffix:'/pc', startingFromPrefix:'From', toastFillTiers:'Fill in at least one complete tier (quantity and price)', tierPickModalTitle:'Choose a tier',
     saveItem:'Save item', clearForm:'Clear form / add new', confirmDeleteItem:function(n){return 'Delete "'+n+'"? (Past sales records are not affected)';},
-    toastFillNameCat:'Enter an item name and category', toastUpdated:'Updated', toastAdded:'Added',
+    toastFillNameCat:'Enter an item name and category', toastUpdated:'Updated', splitBtn:'Split', splitTitle:'Split order', splitHint:'Pick what THIS customer pays for now. The rest is saved to Held tickets for the next customer.', splitStay:'Pay now', splitLater:'Later', splitConfirm:'Split', splitNeedBoth:'Keep at least one item here and move at least one out', splitDone:'Split done — the rest is in Held tickets', splitTicketNote:'Split', splitDiscNote:' (discount stays on this order)', refundBtn:'Refund', refundTitle:'Refund', refundAmt:'Refund amount (RM)', refundFull:'Full', refundMethod:'How is the money returned?', refundNote:'Reason (optional)', refundConfirm:'Confirm refund', refundTag:'Refunded', refundMax:'Max refundable', refundBad:'Invalid amount', unvoidBtn:'Un-void', confirmUnvoid:'Un-void this sale so it counts in totals again?', refundKeepNote:'E-wallet sale refunded in cash: the e-wallet column still counts it (matches the TnG statement); the cash column drops by the cash handed back.', refundNet:'Net',  toastAdded:'Added',
     addEditCategory:'Add / edit category', categoryNamePh:'Category name', categoryShortPh:'Short label for the top tab (optional, for long names)', color:'Color', iconLabel:'Icon', saveCategory:'Save category',
     itemsCountLabel:function(n){return n+' items';}, confirmDeleteCategory:function(n){return 'Delete category "'+n+'"? Items in it will not be deleted, but will become uncategorized.';},
     ordersCount:function(n){return n+' orders';},
@@ -900,7 +931,7 @@ function t(key){ const v = STRINGS[lang][key]; return typeof v==='function' ? v 
 
 const TEXT_IDS = {
   't-login-title':'loginTitle', 't-login-sub':'loginSub', 'btn-login':'login',
-  't-brand-name':'brandName', 't-current-order':'currentOrder', 't-held-tickets':'heldTickets',
+  't-brand-name':'brandName', 't-current-order':'currentOrder', 't-held-tickets':'heldTickets', 't-split-btn':'splitBtn',
   't-cart-empty':'cartEmpty', 't-items-count':'itemsCount', 't-total':'total', 'btn-checkout':'charge',
   'drawer-history':'salesHistory', 'drawer-categories':'manageCategories', 'drawer-products':'manageItems', 'drawer-logout':'logout',
   'variable-confirm-btn':'addToOrder', 't-round-up':'roundUpLabel', 'checkout-modal-title':'charge', 'label-payment-method':'paymentMethod',
@@ -919,7 +950,7 @@ const TEXT_IDS = {
   'disctype-percent-btn':'discountPercent', 'disctype-amount-btn':'discountAmountType',
   'discount-apply-btn':'applyDiscount', 'discount-remove-btn':'removeDiscount',
   'discount-presets-label':'commonDiscounts', 'discount-save-preset-btn':'savePreset',
-  'tickets-modal-title':'heldTickets', 'products-modal-title':'manageItems', 'pm-form-title':'addEditItem',
+  'tickets-modal-title':'heldTickets', 'split-modal-title':'splitTitle', 'refund-modal-title':'refundTitle', 'label-refund-amount':'refundAmt', 'refund-full-btn':'refundFull', 'label-refund-method':'refundMethod', 'refund-confirm-btn':'refundConfirm', 'split-confirm-btn':'splitConfirm', 'products-modal-title':'manageItems', 'pm-form-title':'addEditItem',
   'pm-category-label':'category', 'pm-soldby-label':'soldBy', 'soldby-each-btn':'each', 'soldby-weight-btn':'weight',
   'soldby-tiered-btn':'soldByTiered', 'pm-tiers-label':'tiersLabel', 't-add-tier':'addTier',
   'pm-save-btn':'saveItem', 'pm-clear-btn':'clearForm',
@@ -2110,6 +2141,112 @@ document.getElementById('pending-save-btn').addEventListener('click', ()=>{
     .catch(e=>{ btn.disabled=false; console.error(e); alert(t('saveFailedWarning')); });
 });
 
+/* ================= Refund helpers ================= */
+function refundsOf(x){ return Array.isArray(x.refunds) ? x.refunds : []; }
+function refundTotal(x){ return Math.round(refundsOf(x).reduce((n,r)=>n+(+r.amount||0),0)*100)/100; }
+function netOf(x){ return Math.round((x.total - refundTotal(x) + Number.EPSILON)*100)/100; }
+function methodNet(list, m){
+  let n = 0;
+  list.forEach(x=>{
+    if(x.paymentMethod===m) n += x.total;
+    refundsOf(x).forEach(r=>{ if(r.method===m) n -= (+r.amount||0); });
+  });
+  /* a refund paid out by a method different from the sale's method still lands on the right column */
+  return Math.round((n+Number.EPSILON)*100)/100;
+}
+function methodNetAll(list, m){
+  /* same as methodNet but refunds are matched even if the sale itself was another method */
+  return methodNet(list, m);
+}
+
+
+/* ================= Refund ================= */
+let refundSale = null, refundMethod = null;
+function openRefundModal(sale){
+  refundSale = sale; refundMethod = null;
+  const left = Math.round((sale.total - refundTotal(sale))*100)/100;
+  document.getElementById('refund-summary').textContent = fmt(sale.total) + ' · ' + ({cash:t('cash'),ewallet:t('ewallet'),transfer:t('transfer')}[sale.paymentMethod]||'') + ' · ' + t('refundMax') + ' ' + fmt(left) + '\n' + (sale.paymentMethod==='ewallet' ? t('refundKeepNote') : '');
+  document.getElementById('refund-summary').style.whiteSpace = 'pre-line';
+  document.getElementById('refund-amount-input').value = '';
+  document.getElementById('refund-note-input').value = '';
+  document.querySelectorAll('[data-refmethod]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('refund-confirm-btn').disabled = true;
+  refundSale._left = left;
+  openModal('modal-refund');
+}
+function refundReady(){
+  const v = parseFloat(document.getElementById('refund-amount-input').value);
+  document.getElementById('refund-confirm-btn').disabled = !(refundMethod && v>0 && refundSale && v <= refundSale._left + 0.001);
+}
+document.getElementById('refund-amount-input').addEventListener('input', refundReady);
+document.getElementById('refund-full-btn').addEventListener('click', ()=>{ if(!refundSale) return; document.getElementById('refund-amount-input').value = refundSale._left.toFixed(2); refundReady(); });
+document.querySelectorAll('[data-refmethod]').forEach(btn=>btn.addEventListener('click', ()=>{
+  document.querySelectorAll('[data-refmethod]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); refundMethod = btn.dataset.refmethod; refundReady();
+}));
+document.getElementById('refund-confirm-btn').addEventListener('click', ()=>{
+  if(!refundSale || !refundMethod) return;
+  const amt = Math.round(parseFloat(document.getElementById('refund-amount-input').value)*100)/100;
+  if(!(amt>0) || amt > refundSale._left + 0.001){ toast(t('refundBad')); return; }
+  const rec = {amount:amt, method:refundMethod, note:document.getElementById('refund-note-input').value.trim(), by:currentCashier, at:Date.now()};
+  const sale = refundSale;
+  db.collection('pos_sales').doc(sale.id).update({refunds: firebase.firestore.FieldValue.arrayUnion(rec)})
+    .then(()=>{ if(!Array.isArray(sale.refunds)) sale.refunds=[]; if(!sale.refunds.some(r=>r.at===rec.at)) sale.refunds.push(rec); toast(t('toastUpdated')); closeModal('modal-refund'); renderHistory(); })
+    .catch(err=>console.error('退款失败', err));
+});
+
+/* ================= Split order ================= */
+let splitMove = [];
+function openSplitModal(){
+  if(cart.length<2 && !(cart.length===1 && cart[0].type==='unit' && cart[0].qty>1)){ toast(t('splitNeedBoth')); return; }
+  splitMove = cart.map(()=>0);
+  renderSplitList();
+  openModal('modal-split');
+}
+function splitMax(l){ return (l.type==='weight'||l.type==='tierRate'||l.type==='manual') ? 1 : (l.qty||1); }
+function renderSplitList(){
+  document.getElementById('split-hint').textContent = t('splitHint') + (cartDiscount ? t('splitDiscNote') : '');
+  const wrap = document.getElementById('split-list'); wrap.innerHTML='';
+  cart.forEach((l,i)=>{
+    const max = splitMax(l);
+    const row = document.createElement('div'); row.className='cart-line';
+    const stay = max - splitMove[i];
+    row.innerHTML = '<div class="cart-line-info"><div class="cart-line-name"></div><div class="cart-line-unit"></div></div>'+
+      '<button class="ghost-btn" data-d="-1" type="button">−</button><span style="min-width:90px;text-align:center;font-size:13px;"></span><button class="ghost-btn" data-d="1" type="button">+</button>';
+    row.querySelector('.cart-line-name').textContent = nameWithTemp(l);
+    row.querySelector('.cart-line-unit').textContent = (l.type==='weight' ? l.weightKg+' kg · ' : (max>1 ? '× '+max+' · ' : '')) + fmt(lineTotalOf(l));
+    const lab = row.querySelector('span');
+    lab.textContent = t('splitStay')+' '+stay+' / '+t('splitLater')+' '+splitMove[i];
+    if(max===1) lab.textContent = splitMove[i] ? t('splitLater') : t('splitStay');
+    row.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click', ()=>{
+      const d = +b.dataset.d;
+      if(max===1) splitMove[i] = splitMove[i] ? 0 : 1; else splitMove[i] = Math.max(0, Math.min(max, splitMove[i]+(d>0?1:-1)));
+      renderSplitList();
+    }));
+    wrap.appendChild(row);
+  });
+  const moved = splitMove.reduce((n,v)=>n+v,0);
+  const stayAny = cart.some((l,i)=>splitMax(l)-splitMove[i]>0);
+  document.getElementById('split-confirm-btn').disabled = !(moved>0 && stayAny);
+}
+document.getElementById('btn-split').addEventListener('click', openSplitModal);
+document.getElementById('split-confirm-btn').addEventListener('click', ()=>{
+  const stay = [], later = [];
+  cart.forEach((l,i)=>{
+    const max = splitMax(l), mv = splitMove[i];
+    if(mv<=0){ stay.push(l); return; }
+    if(mv>=max){ later.push(l); return; }
+    stay.push(Object.assign({}, l, {qty: max-mv}));
+    later.push(Object.assign({}, l, {qty: mv}));
+  });
+  if(!stay.length || !later.length){ toast(t('splitNeedBoth')); return; }
+  const tot = later.reduce((n,l)=>n+lineTotalOf(l),0);
+  const tickets = getTickets();
+  tickets.push({id:Date.now(), items:later, note:t('splitTicketNote')+(cartNote?(' · '+cartNote):''), discount:null, total:Math.round((tot+Number.EPSILON)*100)/100, createdAt:Date.now()});
+  saveTickets(tickets);
+  cart = stay; renderCart(); closeModal('modal-split'); toast(t('splitDone'));
+});
+
 /* ================= Open tickets ================= */
 const TICKETS_KEY = 'pos_open_tickets_v1';
 function loadOpenTickets(){ updateTicketBadge(); }
@@ -2542,7 +2679,7 @@ function renderTrendChart(activeList, startMs, endMs){
     const byHour = {};
     activeList.forEach(s=>{
       const h = new Date(s.timestampMs).getHours();
-      byHour[h] = (byHour[h]||0) + s.total;
+      byHour[h] = (byHour[h]||0) + netOf(s);
     });
     const hours = Object.keys(byHour).map(Number);
     const minH = Math.max(0, Math.min(...hours)-1);
@@ -2553,7 +2690,7 @@ function renderTrendChart(activeList, startMs, endMs){
     activeList.forEach(s=>{
       const d = new Date(s.timestampMs);
       const key = d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
-      byDay[key] = (byDay[key]||0) + s.total;
+      byDay[key] = (byDay[key]||0) + netOf(s);
     });
     for(let ms=startMs; ms<endMs; ms+=86400000){
       const d = new Date(ms);
@@ -2589,13 +2726,13 @@ function renderTrendChart(activeList, startMs, endMs){
 
 function renderHistoryWithList(list, startMs, endMs){
   const activeList = list.filter(s=>!s.voided);
-  const revenue = activeList.reduce((s,x)=>s+x.total,0);
+  const revenue = Math.round(activeList.reduce((s,x)=>s+netOf(x),0)*100)/100;
   const cashList = activeList.filter(x=>x.paymentMethod==='cash');
   const transferList = activeList.filter(x=>x.paymentMethod==='transfer');
   const ewalletList = activeList.filter(x=>x.paymentMethod==='ewallet');
-  const cash = cashList.reduce((s,x)=>s+x.total,0);
-  const transfer = transferList.reduce((s,x)=>s+x.total,0);
-  const ewallet = ewalletList.reduce((s,x)=>s+x.total,0);
+  const cash = methodNet(activeList,'cash');
+  const transfer = methodNet(activeList,'transfer');
+  const ewallet = methodNet(activeList,'ewallet');
   document.getElementById('stat-revenue').textContent = fmt(revenue);
   document.getElementById('stat-count').textContent = activeList.length;
   document.getElementById('stat-cash').textContent = fmt(cash);
@@ -2612,10 +2749,11 @@ function renderHistoryWithList(list, startMs, endMs){
   document.getElementById('stat-receipt-sub').textContent = t('receiptFailedCount')(rcptFailed);
 
   renderTrendChart(activeList, startMs, endMs);
-  renderCategoryBreakdown(activeList);
+  const itemStatList = activeList.filter(x=>refundTotal(x) < x.total - 0.001);
+  renderCategoryBreakdown(itemStatList);
 
   const rankMap = {};
-  activeList.forEach(s=>(s.items||[]).forEach(it=>{
+  itemStatList.forEach(s=>(s.items||[]).forEach(it=>{
     if(!rankMap[it.name]) rankMap[it.name] = {qty:0, total:0, mode:it.mode};
     rankMap[it.name].qty += it.qty; rankMap[it.name].total += it.lineTotal;
   }));
@@ -2646,9 +2784,26 @@ function renderHistoryWithList(list, startMs, endMs){
       row.style.opacity = '0.55';
       row.querySelector('.tx-time').textContent = time + ' · ' + (methodLabel[s.paymentMethod]||s.paymentMethod) + ' · ' + (s.cashier||'') + ' · ' + t('voided');
       amountEl.innerHTML = '<span style="text-decoration:line-through;">'+fmt(s.total)+'</span>';
+      const unBtn = document.createElement('button');
+      unBtn.className = 'pm-mini-btn'; unBtn.style.marginLeft='8px'; unBtn.style.width='auto'; unBtn.style.padding='2px 8px'; unBtn.style.fontSize='11px';
+      unBtn.textContent = t('unvoidBtn');
+      unBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if(!confirm(t('confirmUnvoid'))) return;
+        db.collection('pos_sales').doc(s.id).update({voided:false, unvoidedAt:Date.now(), unvoidedBy:currentCashier})
+          .then(()=>renderHistory()).catch(err=>console.error(err));
+      });
+      row.querySelector('.tx-row-top').appendChild(unBtn);
     }else{
       row.querySelector('.tx-time').textContent = time + ' · ' + (methodLabel[s.paymentMethod]||s.paymentMethod) + ' · ' + (s.cashier||'') + (s.paymentMethodCorrected ? (' · '+t('correctedTag')) : '') + (s.backfilled ? (' · '+t('backfilledTag')) : '') + (s.pendingFill ? (' · '+t('pendingTag')) : '') + (s.receiptStatus==='sent' ? (' · '+t('receiptSentTag')) : (s.receiptStatus==='failed' ? (' · '+t('receiptFailedTag')) : ''));
-      amountEl.textContent = fmt(s.total);
+      const rt = refundTotal(s);
+      if(rt>0){ amountEl.innerHTML = '<span style="text-decoration:line-through;opacity:.6;">'+fmt(s.total)+'</span> '+fmt(netOf(s)); }
+      else amountEl.textContent = fmt(s.total);
+      if(rt>0){ row.querySelector('.tx-time').textContent += ' · '+t('refundTag')+' '+fmt(rt)+' ('+refundsOf(s).map(r=>({cash:t('cash'),ewallet:t('ewallet')}[r.method]||r.method)).join('/')+')'; }
+      const refBtn = document.createElement('button');
+      refBtn.className = 'pm-mini-btn'; refBtn.style.marginLeft='6px'; refBtn.style.width='auto'; refBtn.style.padding='2px 8px'; refBtn.style.fontSize='11px';
+      refBtn.textContent = t('refundBtn');
+      refBtn.addEventListener('click', (e)=>{ e.stopPropagation(); openRefundModal(s); });
       const voidBtn = document.createElement('button');
       voidBtn.className = 'pm-mini-btn';
       voidBtn.style.marginLeft = '8px';
@@ -2687,6 +2842,7 @@ function renderHistoryWithList(list, startMs, endMs){
       });
       row.querySelector('.tx-row-top').appendChild(rcptBtn);
       row.querySelector('.tx-row-top').appendChild(fixBtn);
+      row.querySelector('.tx-row-top').appendChild(refBtn);
       row.querySelector('.tx-row-top').appendChild(voidBtn);
     }
     const discText = s.discountAmount ? (' · '+t('discountLabel')+' -'+fmt(s.discountAmount)) : '';
@@ -2838,7 +2994,7 @@ function renderPrepBoard(){
 function todayCashTotal(){
   const {startMs, endMs} = todayBoundsMs();
   return sales.filter(s=>!s.voided && s.paymentMethod==='cash' && s.timestampMs>=startMs && s.timestampMs<endMs)
-    .reduce((sum,s)=>sum+s.total, 0);
+    .reduce((sum,s)=>sum+s.total, 0) - sales.filter(s=>!s.voided && s.timestampMs>=startMs && s.timestampMs<endMs).reduce((n,s)=>n+refundsOf(s).filter(r=>r.method==='cash').reduce((a,r)=>a+(+r.amount||0),0),0);
 }
 function updateReconDiff(){
   const systemCash = todayCashTotal();
@@ -2973,7 +3129,7 @@ function renderDailyRecon(){
     const cb = row.querySelector('input'); cb.checked = !!x.reconChecked;
     row.querySelector('.dr-top').textContent = tm + ' · ' + (x.cashier||'') + (x.backfilled ? (' · '+t('backfilledTag')) : '') + (x.pendingFill ? (' · '+t('pendingTag')) : '');
     row.querySelector('.dr-items').textContent = (x.items||[]).map(it=>nameWithTemp(it)+' x'+it.qty+(it.mode==='weight'?'kg':'')).join('，');
-    row.querySelector('.dr-amt').textContent = fmt(x.total);
+    row.querySelector('.dr-amt').textContent = fmt(x.total) + (refundTotal(x)>0 ? ' (-'+fmt(refundTotal(x))+')' : '');
     const toggle = ()=>{
       const nv = !x.reconChecked;
       x.reconChecked = nv; // optimistic; snapshot will confirm
@@ -3059,9 +3215,9 @@ document.getElementById('export-confirm-btn').addEventListener('click', ()=>{
       const d = new Date(s.timestampMs);
       const key = d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
       if(!byDay[key]) byDay[key] = {cash:0, ewallet:0};
-      if(s.paymentMethod==='cash') byDay[key].cash += s.total;
-      else if(s.paymentMethod==='ewallet') byDay[key].ewallet += s.total;
+      if(s.paymentMethod==='ewallet') byDay[key].ewallet += s.total;
       else byDay[key].cash += s.total; /* fold any legacy transfer records into cash so nothing is silently dropped */
+      refundsOf(s).forEach(r=>{ if(r.method==='ewallet') byDay[key].ewallet -= (+r.amount||0); else byDay[key].cash -= (+r.amount||0); });
     });
     const rows = [['Date 日期','Month 月份','Day 星期','Cash 现金','E-wallet 电子钱包','Daily Total 当日合计']];
     let cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
